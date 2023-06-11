@@ -62,13 +62,16 @@ ping each mongo shard for membership
 db.getSiblingDB("admin").runCommand({replSetGetStatus: 1}).members
 */
 
-const getShardMap = async (envName: string) => {
+const getMongosByEnv = (envName: string) => {
   if(!Deno.env.has("MONGOS_BY_ENV")) {
     throw new Error("Missing MONGOS_BY_ENV variable which is json encoded");
   }
 
   const MONGOS_BY_ENV = JSON.parse(Deno.env.get("MONGOS_BY_ENV") || "{}")
-  const uri = `mongodb://${auth}${MONGOS_BY_ENV[envName]}`;
+  return MONGOS_BY_ENV[envName]
+}
+const getShardMap = async (envName: string) => {
+  const uri = `mongodb://${auth}${getMongosByEnv(envName)}`;
   const client = new MongoClient(uri);
   const result = await client.db('admin').command({getShardMap: 1})
   return result.map
@@ -110,6 +113,9 @@ const mainPrompted = async (envName: string) => {
     })
     allNodes.push(all)
   }
+
+  // Insert mongos back into the total possible set
+  allNodes.push({rs: "mongos", name: getMongosByEnv(envName), state: "none"} as Node)
 
   const colorByState = (state: string) => {
     switch (state) {

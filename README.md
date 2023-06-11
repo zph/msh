@@ -11,7 +11,8 @@ Depends on deno 1.32+ and cannot be single binary compiled due to
 https://github.com/denoland/deno/issues/16632 as of 2023-06. Instead use `deno install`.
 
 ```
-deno install --allow-all --unstable -f --name msh https://raw.githubusercontent.com/zph/msh/main/main.ts
+wget https://raw.githubusercontent.com/zph/msh/main/main.ts
+deno install --allow-all --unstable -f --name msh ./main.ts
 ```
 
 Add that deno install path to your $PATH
