@@ -38,3 +38,5 @@ msh localhost:27017
 # Prompted form
 msh --env production
 ```
+
+<img width="697" alt="image" src="https://github.com/zph/msh/assets/1026584/003599bd-440d-465d-9900-7f884c3feb08">
