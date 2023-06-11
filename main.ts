@@ -1,9 +1,8 @@
-#!/usr/bin/env -S deno run --allow-all
+#!/usr/bin/env -S deno run --allow-all --unstable
 
 import "https://deno.land/x/violet/globals.d.ts";
 import "https://deno.land/x/violet@0.1.0/globals.ts";
 import "https://deno.land/std/log/mod.ts"
-import * as log from "https://deno.land/std/log/mod.ts";
 import { Select } from "https://deno.land/x/cliffy@v0.25.7/prompt/select.ts";
 import "https://deno.land/x/lodash@4.17.19/dist/lodash.js";
 
@@ -94,8 +93,6 @@ const mainPrompted = async (envName: string) => {
   })
 
   nodes = _.uniqBy(nodes, 1)
-
-  console.log(nodes)
 
   type Node = {
     rs: string, name: string, state: string
