@@ -24,6 +24,7 @@ Setup necessary environmental variables
 export MONGO_USER=
 export MONGO_PASSWORD=
 export MONGO_AUTH_DB=admin
+# MONGOS_BY_ENV is a k/v pair of env name to one URI for mongos node
 export MONGOS_BY_ENV='{"local": "localhost:27017", "production": "mongodb-prod-mongos.company.internal:27017"}'
 ```
 
