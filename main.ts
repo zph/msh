@@ -16,6 +16,16 @@ const PARSED_ARGS = parse(Deno.args)
 //mongodb@5.6
 import { MongoClient } from "npm:mongodb@5.6"
 
+if(Deno.env.has("MSH_ENV_VAR_OVERRIDE")) {
+  const overrides = JSON.parse(Deno.env.get("MSH_ENV_VAR_OVERRIDE") || "{}")
+  if(overrides["MONGO_USER"]){
+    Deno.env.set("MONGO_USER", overrides["MONGO_USER"])
+  }
+  if(overrides["MONGO_PASSWORD"]){
+    Deno.env.set("MONGO_USER", overrides["MONGO_PASSWORD"])
+  }
+}
+
 let MONGO_USER = ""
 if(Deno.env.has("MONGO_USER")) {
   MONGO_USER = Deno.env.get("MONGO_USER") || ""
