@@ -24,26 +24,15 @@ if(Deno.env.has("MSH_ENV_VAR_OVERRIDE")) {
     Deno.env.set("MONGO_USER", Deno.env.get(uOverride) || "")
   }
   if(pOverride){
-    Deno.env.set("MONGO_USER", Deno.env.get(pOverride) || "")
+    Deno.env.set("MONGO_PASSWORD", Deno.env.get(pOverride) || "")
   }
 }
 
-let MONGO_USER = ""
-if(Deno.env.has("MONGO_USER")) {
-  MONGO_USER = Deno.env.get("MONGO_USER") || ""
-}
+const MONGO_USER = Deno.env.get("MONGO_USER") || ""
+const MONGO_PASSWORD = Deno.env.get("MONGO_PASSWORD") || ""
 
-let MONGO_PASSWORD = ""
-if(Deno.env.has("MONGO_PASSWORD")) {
-  MONGO_PASSWORD = Deno.env.get("MONGO_PASSWORD") || ""
-}
-
-let MONGO_AUTH_DB = ""
-let mongo_auth_args: string[] = []
-if(Deno.env.has("MONGO_AUTH_DB")) {
-  MONGO_AUTH_DB = Deno.env.get("MONGO_AUTH_DB") || ""
-  mongo_auth_args = ["--authenticationDatabase", MONGO_AUTH_DB]
-}
+const MONGO_AUTH_DB = Deno.env.get("MONGO_AUTH_DB") || ""
+const mongo_auth_args: string[] = ["--authenticationDatabase", MONGO_AUTH_DB]
 
 const buildAuthURI = (user: string, password: string) => {
   if(user === "") { return "" }
@@ -112,8 +101,8 @@ const mainPrompted = async (envName: string) => {
   const allNodes: Node[] = []
   for await (const n of nodes) {
     const [k, _v] = n
-    // TODO: ?authenticationDatabase=admin
-    const uri = `mongodb://${auth}${k}`;
+    // NOTE: ?authenticationDatabase=admin is equivalent to authSource when using driver :shrug:
+    const uri = `mongodb://${buildAuthURI(MONGO_USER, MONGO_PASSWORD)}${k}?authSource=${MONGO_AUTH_DB}`;
     const client = new MongoClient(uri);
     const result = await client.db('admin').command({ replSetGetStatus: 1 })
     const all = result.members.map((e: any) => {
