@@ -18,11 +18,13 @@ import { MongoClient } from "npm:mongodb@5.6"
 
 if(Deno.env.has("MSH_ENV_VAR_OVERRIDE")) {
   const overrides = JSON.parse(Deno.env.get("MSH_ENV_VAR_OVERRIDE") || "{}")
-  if(overrides["MONGO_USER"]){
-    Deno.env.set("MONGO_USER", overrides["MONGO_USER"])
+  const uOverride = overrides["MONGO_USER"]
+  const pOverride = overrides["MONGO_PASSWORD"]
+  if(uOverride){
+    Deno.env.set("MONGO_USER", Deno.env.get(uOverride) || "")
   }
-  if(overrides["MONGO_PASSWORD"]){
-    Deno.env.set("MONGO_USER", overrides["MONGO_PASSWORD"])
+  if(pOverride){
+    Deno.env.set("MONGO_USER", Deno.env.get(pOverride) || "")
   }
 }
 
@@ -43,18 +45,14 @@ if(Deno.env.has("MONGO_AUTH_DB")) {
   mongo_auth_args = ["--authenticationDatabase", MONGO_AUTH_DB]
 }
 
-let auth = ""
-if(MONGO_USER !== "") {
-  auth = MONGO_USER
-}
-
-if(MONGO_PASSWORD !== "") {
-  auth += ":"
-  auth += MONGO_PASSWORD
-}
-
-if(auth !== "") {
-  auth += "@"
+const buildAuthURI = (user: string, password: string) => {
+  if(user === "") { return "" }
+  return [
+    user,
+    ":",
+    password,
+    "@"
+  ].join("")
 }
 
 /*
@@ -81,7 +79,7 @@ const getMongosByEnv = (envName: string) => {
   return MONGOS_BY_ENV[envName]
 }
 const getShardMap = async (envName: string) => {
-  const uri = `mongodb://${auth}${getMongosByEnv(envName)}`;
+  const uri = `mongodb://${buildAuthURI(MONGO_USER, MONGO_PASSWORD)}${getMongosByEnv(envName)}?authSource=${MONGO_AUTH_DB}`;
   const client = new MongoClient(uri);
   const result = await client.db('admin').command({getShardMap: 1})
   return result.map
