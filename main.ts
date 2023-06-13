@@ -13,7 +13,6 @@ import { parse } from "https://deno.land/std/flags/mod.ts";
 
 const PARSED_ARGS = parse(Deno.args)
 
-//mongodb@5.6
 import { MongoClient } from "npm:mongodb@5.6"
 
 if(Deno.env.has("MSH_ENV_VAR_OVERRIDE")) {
@@ -30,9 +29,7 @@ if(Deno.env.has("MSH_ENV_VAR_OVERRIDE")) {
 
 const MONGO_USER = Deno.env.get("MONGO_USER") || ""
 const MONGO_PASSWORD = Deno.env.get("MONGO_PASSWORD") || ""
-
 const MONGO_AUTH_DB = Deno.env.get("MONGO_AUTH_DB") || ""
-const mongo_auth_args: string[] = ["--authenticationDatabase", MONGO_AUTH_DB]
 
 const buildAuthURI = (user: string, password: string) => {
   if(user === "") { return "" }
@@ -146,7 +143,8 @@ const main = async () => {
   }
 
   if (MONGO_USER !== "") {
-    await $`mongo mongodb://${server} --username $MONGO_USER --password $MONGO_PASSWORD --authenticationDatabase ${MONGO_AUTH_DB}`
+    // TODO: unhardcode this best practice for auth database :shrug: but it breaks the unescaping
+    await $`mongo mongodb://${server} --username $MONGO_USER --password $MONGO_PASSWORD --authenticationDatabase admin`
   } else {
     await $`mongo mongodb://${server}`
   }
