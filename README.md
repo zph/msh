@@ -26,6 +26,8 @@ export MONGO_PASSWORD=
 export MONGO_AUTH_DB=admin
 # MONGOS_BY_ENV is a k/v pair of env name to one URI for mongos node
 export MONGOS_BY_ENV='{"local": "localhost:27017", "production": "mongodb-prod-mongos.company.internal:27017"}'
+# Use alternative env var names for fetching these values
+export MSH_ENV_VAR_OVERRIDE='{"MONGO_USER": "MUSER", "MONGO_PASSWORD": MPASSWORD"}'
 ```
 
 `MONGOS_BY_ENV` allows a convenient mapping layer of where to start introspection from using `--env`
