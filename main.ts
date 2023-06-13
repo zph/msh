@@ -146,7 +146,7 @@ const main = async () => {
   }
 
   if (MONGO_USER !== "") {
-    await $`mongo mongodb://${server} --username $MONGO_USER --password$MONGO_PASSWORD ${mongo_auth_args}`
+    await $`mongo mongodb://${server} --username $MONGO_USER --password $MONGO_PASSWORD --authenticationDatabase ${MONGO_AUTH_DB}`
   } else {
     await $`mongo mongodb://${server}`
   }
