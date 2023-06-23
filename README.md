@@ -1,14 +1,16 @@
 # msh - mongo shell for large clusters
 
-Mongo shell helper to auto-discover mongo cluster nodes, display their shard and state
-(PRIMARY/SECONDARY) and prompt for which to connect to.
+Mongo shell helper to auto-discover mongo cluster nodes, display their shard and
+state (PRIMARY/SECONDARY) and prompt for which to connect to.
 
-Stop trying to remember all your pet mongods in large clusters and let introspection do the work!
+Stop trying to remember all your pet mongods in large clusters and let
+introspection do the work!
 
 # Installation
 
 Depends on deno 1.32+ and cannot be single binary compiled due to
-https://github.com/denoland/deno/issues/16632 as of 2023-06. Instead use `deno install`.
+https://github.com/denoland/deno/issues/16632 as of 2023-06. Instead use
+`deno install`.
 
 ```
 wget https://raw.githubusercontent.com/zph/msh/main/main.ts
@@ -30,8 +32,8 @@ export MONGOS_BY_ENV='{"local": "localhost:27017", "production": "mongodb-prod-m
 export MSH_ENV_VAR_OVERRIDE='{"MONGO_USER": "MUSER", "MONGO_PASSWORD": MPASSWORD"}'
 ```
 
-`MONGOS_BY_ENV` allows a convenient mapping layer of where to start introspection from using `--env`
-flag.
+`MONGOS_BY_ENV` allows a convenient mapping layer of where to start
+introspection from using `--env` flag.
 
 # Usage
 
