@@ -15,3 +15,5 @@ Can use hooks before publishing
     "after:release": "echo Successfully released ${name} v${version} to ${repo.repository}."
   }
 ```
+
+## Determine how to remove dependency on npm based packages
