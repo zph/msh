@@ -30,6 +30,6 @@ module.exports = {
     "assets": [
       "build/**/msh"
     ],
-    "web": true
+    // "web": true
   }
 }
