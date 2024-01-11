@@ -10,3 +10,6 @@ build:
 
 clean:
   rm -rf ./build
+
+release:
+  release-it -VV
