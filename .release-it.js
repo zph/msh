@@ -26,7 +26,7 @@ module.exports = {
   "github": {
     "release": true,
     "assets": [
-      "build/*"
+      "build/**/msh"
     ],
     "web": true
   }
