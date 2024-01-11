@@ -6,6 +6,7 @@ import "https://deno.land/x/lodash@4.17.19/dist/lodash.js";
 import config from "./config.json" with { type: "json" };
 
 // now `_` is imported in the global variable, which in deno is `self`
+// deno-lint-ignore no-explicit-any
 const _ = (self as any)._;
 import {
   blue,
@@ -17,7 +18,11 @@ import {
 } from "https://deno.land/std/fmt/colors.ts";
 import { parse } from "https://deno.land/std/flags/mod.ts";
 
-const PARSED_ARGS = parse(Deno.args, {boolean: ["version"], string: ["env"]});
+const PARSED_ARGS = parse(Deno.args, {
+  boolean: ["version"],
+  string: ["env"],
+  default: { env: "local" },
+});
 
 import { MongoClient } from "npm:mongodb@5.6";
 
@@ -120,6 +125,8 @@ const mainPrompted = async (envName: string) => {
     }${k}?authSource=${MONGO_AUTH_DB}`;
     const client = new MongoClient(uri);
     const result = await client.db("admin").command({ replSetGetStatus: 1 });
+
+    // deno-lint-ignore no-explicit-any
     const all = result.members.map((e: any) => {
       return { rs: result.set, name: e.name as string, state: e.stateStr };
     });
@@ -190,18 +197,17 @@ const connect = async () => {
       `mongodb://${server}`,
     ]);
   }
+};
 
-}
+const version = () => {
+  console.info(`msh version ${config.version}`);
+};
 
-const version = async () => {
-  console.info(`msh version ${config.version}`)
-}
-
-const main = async () => {
+const main = () => {
   if (PARSED_ARGS.version) {
-    await version()
+    version();
   } else {
-    connect()
+    connect();
   }
 };
 

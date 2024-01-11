@@ -8,6 +8,10 @@ build:
     tar -C build/$TARGET -cvzf build/$TARGET/msh-$TARGET.tgz msh
   done
 
+check:
+  deno fmt
+  deno lint
+
 clean:
   rm -rf ./build
 
