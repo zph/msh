@@ -1,7 +1,9 @@
 module.exports = {
   "hooks": {
     "after:bump": "npx auto-changelog -p",
+    "after:github:release": "just clean",
     "before:release": "just build",
+    "before:init": "just clean",
   },
   "plugins": {
     "@release-it/bumper": {

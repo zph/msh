@@ -5,3 +5,6 @@ build:
   for TARGET in "${TARGETS[@]}"; do
     deno compile --allow-all --unstable --target $TARGET --output ./build/$TARGET/msh --node-modules-dir=false main.ts
   done
+
+clean:
+  rm -rf ./build
