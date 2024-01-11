@@ -2,5 +2,5 @@
   "tasks": {
     "dev": "deno run --watch main.ts"
   },
-  "version": "v0.1.0"
+  "version": "v0.0.1"
 }
