@@ -28,7 +28,7 @@ module.exports = {
   "github": {
     "release": true,
     "assets": [
-      "build/**/msh"
+      "build/**/*.tgz"
     ],
     // "web": true
   }
