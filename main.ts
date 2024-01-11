@@ -3,6 +3,7 @@
 import "https://deno.land/std/log/mod.ts";
 import { Select } from "https://deno.land/x/cliffy@v0.25.7/prompt/select.ts";
 import "https://deno.land/x/lodash@4.17.19/dist/lodash.js";
+import config from "./config.json" with { type: "json" };
 
 // now `_` is imported in the global variable, which in deno is `self`
 const _ = (self as any)._;
@@ -16,7 +17,7 @@ import {
 } from "https://deno.land/std/fmt/colors.ts";
 import { parse } from "https://deno.land/std/flags/mod.ts";
 
-const PARSED_ARGS = parse(Deno.args);
+const PARSED_ARGS = parse(Deno.args, {boolean: ["version"]});
 
 import { MongoClient } from "npm:mongodb@5.6";
 
@@ -162,16 +163,16 @@ const mainPrompted = async (envName: string) => {
   return server;
 };
 
-const main = async () => {
-  Deno.addSignalListener("SIGINT", () => {
-    console.log("interrupted!");
-    Deno.exit();
-  });
-
+const connect = async () => {
   let server = PARSED_ARGS._[0];
   if (PARSED_ARGS["env"]) {
     server = await mainPrompted(PARSED_ARGS.env);
   }
+
+  Deno.addSignalListener("SIGINT", () => {
+    console.log("interrupted!");
+    Deno.exit();
+  });
 
   if (MONGO_USER !== "") {
     // TODO: unhardcode this best practice for auth database :shrug: but it breaks the unescaping
@@ -188,6 +189,19 @@ const main = async () => {
     await mongosh([
       `mongodb://${server}`,
     ]);
+  }
+
+}
+
+const version = async () => {
+  console.info(`msh version ${config.version}`)
+}
+
+const main = async () => {
+  if (PARSED_ARGS.version) {
+    await version()
+  } else {
+    connect()
   }
 };
 

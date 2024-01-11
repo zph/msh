@@ -8,12 +8,12 @@ module.exports = {
   "plugins": {
     "@release-it/bumper": {
       "in": {
-        "file": "deno.jsonc",
+        "file": "config.json",
         "type": "application/json",
         "path": "version"
       },
       "out": {
-        "file": "deno.jsonc",
+        "file": "config.json",
         "type": "application/json",
         "path": "version"
       }
