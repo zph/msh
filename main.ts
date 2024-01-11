@@ -17,7 +17,7 @@ import {
 } from "https://deno.land/std/fmt/colors.ts";
 import { parse } from "https://deno.land/std/flags/mod.ts";
 
-const PARSED_ARGS = parse(Deno.args, {boolean: ["version"]});
+const PARSED_ARGS = parse(Deno.args, {boolean: ["version"], string: ["env"]});
 
 import { MongoClient } from "npm:mongodb@5.6";
 
