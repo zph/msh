@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-all --unstable
+#!/usr/bin/env -S deno run --allow-all
 
 import "https://deno.land/std/log/mod.ts";
 import { Select } from "https://deno.land/x/cliffy@v0.25.7/prompt/select.ts";
