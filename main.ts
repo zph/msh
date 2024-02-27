@@ -25,30 +25,28 @@ const PARSED_ARGS = parse(Deno.args, {
   default: { env: "local", "debug": false },
 });
 
-let logDefault: log.LoggerConfig = {level: "INFO", handlers: ["jsonStdout"]}
+let logDefault: log.LoggerConfig = { level: "INFO", handlers: ["jsonStdout"] };
 
-if(PARSED_ARGS.debug) {
-  logDefault = {level: "DEBUG", handlers: ["jsonStdout"]}
+if (PARSED_ARGS.debug) {
+  logDefault = { level: "DEBUG", handlers: ["jsonStdout"] };
 }
 
 await log.setup({
-    //define handlers
-    handlers: {
-      jsonStdout: new log.ConsoleHandler("DEBUG", {
-        formatter: log.formatters.jsonFormatter,
-        useColors: false,
-      }),
-    },
-    //assign handlers to loggers
-    loggers: {
-        default: logDefault
-
-    },
+  //define handlers
+  handlers: {
+    jsonStdout: new log.ConsoleHandler("DEBUG", {
+      formatter: log.formatters.jsonFormatter,
+      useColors: false,
+    }),
+  },
+  //assign handlers to loggers
+  loggers: {
+    default: logDefault,
+  },
 });
 const logger = log.getLogger();
 
 import { MongoClient } from "npm:mongodb@5.6";
-import { BaseHandler } from "https://deno.land/std@0.183.0/log/handlers.ts";
 
 if (Deno.env.has("MSH_ENV_VAR_OVERRIDE")) {
   const overrides = JSON.parse(Deno.env.get("MSH_ENV_VAR_OVERRIDE") || "{}");
@@ -103,7 +101,7 @@ const getShardMap = async (envName: string) => {
   const uri = `mongodb://${buildAuthURI(MONGO_USER, MONGO_PASSWORD)}${
     getMongosByEnv(envName)
   }?authSource=${MONGO_AUTH_DB}`;
-  logger.debug("getShardMap", {fn: "getShardMap", uri})
+  logger.debug("getShardMap", { fn: "getShardMap", uri });
   const client = new MongoClient(uri);
   const result = await client.db("admin").command({ getShardMap: 1 });
   return result.map;
@@ -111,7 +109,7 @@ const getShardMap = async (envName: string) => {
 
 const mongosh = async (args: string[]) => {
   const cmd = new Deno.Command("mongo", { args: args });
-  logger.debug("mongosh", {cmd, args})
+  logger.debug("mongosh", { cmd, args });
   const child = cmd.spawn();
   await child.status;
 };
@@ -149,7 +147,7 @@ const mainPrompted = async (envName: string) => {
     const uri = `mongodb://${
       buildAuthURI(MONGO_USER, MONGO_PASSWORD)
     }${k}?authSource=${MONGO_AUTH_DB}`;
-    logger.debug("mainPrompt looping over nodes", {uri})
+    logger.debug("mainPrompt looping over nodes", { uri });
     const client = new MongoClient(uri);
     const result = await client.db("admin").command({ replSetGetStatus: 1 });
 
