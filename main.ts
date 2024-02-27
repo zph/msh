@@ -5,6 +5,7 @@ import { Select } from "https://deno.land/x/cliffy@v0.25.7/prompt/select.ts";
 import "https://deno.land/x/lodash@4.17.19/dist/lodash.js";
 import * as log from "https://deno.land/std@0.217.0/log/mod.ts";
 import config from "./config.json" with { type: "json" };
+import $ from "https://deno.land/x/dax/mod.ts";
 
 // now `_` is imported in the global variable, which in deno is `self`
 // deno-lint-ignore no-explicit-any
@@ -102,9 +103,15 @@ const getShardMap = async (envName: string) => {
     getMongosByEnv(envName)
   }?authSource=${MONGO_AUTH_DB}`;
   logger.debug("getShardMap", { fn: "getShardMap", uri });
-  const client = new MongoClient(uri);
-  const result = await client.db("admin").command({ getShardMap: 1 });
-  return result.map;
+
+  let result
+  try {
+    const client = new MongoClient(uri);
+    result = await client.db("admin").command({ getShardMap: 1 });
+  } catch (error) {
+      logger.warn(`Error on ${envName}`, {error, MONGO_USER, MONGO_AUTH_DB})
+  }
+  return result?.map;
 };
 
 const mongosh = async (args: string[]) => {
@@ -117,6 +124,7 @@ const mongosh = async (args: string[]) => {
 const mainPrompted = async (envName: string) => {
   const shardMap: Record<string, string> = await getShardMap(envName);
 
+  // Refactor this to be by shard value
   let nodes = Object.entries(shardMap).filter(([k, v]) => {
     return k !== v;
   }).filter(([k, v]) => {
@@ -132,7 +140,18 @@ const mainPrompted = async (envName: string) => {
     return false;
   });
 
-  nodes = _.uniqBy(nodes, 1);
+  type Shard = {
+    rs: string;
+    connection: string;
+  };
+
+  const allShards = nodes.map(([k, v]) => {
+    // "rs-N/rs1-0:27017,rs1-1:27017,rs1-2:27017"
+    const [rs, connection] = v.split("/")
+    return {rs, connection} as Shard
+  })
+
+  const shardURIs = _.uniqBy(allShards, (s: Shard) => (s.rs))
 
   type Node = {
     rs: string;
@@ -140,20 +159,49 @@ const mainPrompted = async (envName: string) => {
     state: string;
   };
 
-  const allNodes: Node[] = [];
-  for await (const n of nodes) {
-    const [k, _v] = n;
+  const nodeRespondedOnPort = async (node, port) => {
+    const result = await $`nc -z ${node} ${port}`.stdout("piped").noThrow().quiet()
+    if(result.code === 0) {
+      return true
+    }
+    return false
+  }
+  // Fails if any of the nodes is unreachable on the port
+  // So we work around that by trying one node at a time
+  // first with netcat and then with the actual connection
+  // See issue: https://github.com/denoland/deno/issues/11595
+  const replSetGetStatus = async ({rs, connection}: Shard) => {
+    const oneNode = await connection.split(",").find(async (c) => {
+      const [node, port] = c.split(":")
+      return await nodeRespondedOnPort(node, port)
+    })
     // NOTE: ?authenticationDatabase=admin is equivalent to authSource when using driver :shrug:
     const uri = `mongodb://${
       buildAuthURI(MONGO_USER, MONGO_PASSWORD)
-    }${k}?authSource=${MONGO_AUTH_DB}`;
+    }${oneNode}/?authSource=${MONGO_AUTH_DB}&directConnection=true&replicaSet=${rs}`;
     logger.debug("mainPrompt looping over nodes", { uri });
-    const client = new MongoClient(uri);
-    const result = await client.db("admin").command({ replSetGetStatus: 1 });
-
+    try {
+      const client = new MongoClient(uri);
+      logger.debug("mainPrompt client instantiated", { uri });
+      const db = client.db("admin")
+      logger.debug("mainPrompt db instance");
+      return await db.command({ replSetGetStatus: 1 })
+    } catch (error) {
+      logger.error(error)
+    }
+  }
+  const allNodes: Node[] = [];
+  for await (const n of shardURIs) {
+    const result = await replSetGetStatus(n).catch(e =>
+      logger.error("Error getting connection", e)
+      )
+    // Try to guard against a single node going down and breaking connectivity
+    if(result === undefined) {
+      continue
+    }
     // deno-lint-ignore no-explicit-any
     const all = result.members.map((e: any) => {
-      return { rs: result.set, name: e.name as string, state: e.stateStr };
+      return {rs: n.rs, name: e.name as string, state: e.stateStr };
     });
     allNodes.push(all);
   }
