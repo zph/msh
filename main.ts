@@ -104,12 +104,12 @@ const getShardMap = async (envName: string) => {
   }?authSource=${MONGO_AUTH_DB}`;
   logger.debug("getShardMap", { fn: "getShardMap", uri });
 
-  let result
+  let result;
   try {
     const client = new MongoClient(uri);
     result = await client.db("admin").command({ getShardMap: 1 });
   } catch (error) {
-      logger.warn(`Error on ${envName}`, {error, MONGO_USER, MONGO_AUTH_DB})
+    logger.warn(`Error on ${envName}`, { error, MONGO_USER, MONGO_AUTH_DB });
   }
   return result?.map;
 };
@@ -146,11 +146,11 @@ const mainPrompted = async (envName: string) => {
 
   const allShards = nodes.map(([_k, v]) => {
     // "rs-N/rs1-0:27017,rs1-1:27017,rs1-2:27017"
-    const [rs, connection] = v.split("/")
-    return {rs, connection} as Shard
-  })
+    const [rs, connection] = v.split("/");
+    return { rs, connection } as Shard;
+  });
 
-  const shardURIs = _.uniqBy(allShards, (s: Shard) => (s.rs))
+  const shardURIs = _.uniqBy(allShards, (s: Shard) => (s.rs));
 
   type Node = {
     rs: string;
@@ -159,21 +159,22 @@ const mainPrompted = async (envName: string) => {
   };
 
   const nodeRespondedOnPort = async (node: string, port: string) => {
-    const result = await $`nc -z ${node} ${port}`.stdout("piped").noThrow().quiet()
-    if(result.code === 0) {
-      return true
+    const result = await $`nc -z ${node} ${port}`.stdout("piped").noThrow()
+      .quiet();
+    if (result.code === 0) {
+      return true;
     }
-    return false
-  }
+    return false;
+  };
   // Fails if any of the nodes is unreachable on the port
   // So we work around that by trying one node at a time
   // first with netcat and then with the actual connection
   // See issue: https://github.com/denoland/deno/issues/11595
-  const replSetGetStatus = async ({rs, connection}: Shard) => {
+  const replSetGetStatus = async ({ rs, connection }: Shard) => {
     const oneNode = await connection.split(",").find(async (c) => {
-      const [node, port] = c.split(":")
-      return await nodeRespondedOnPort(node, port)
-    })
+      const [node, port] = c.split(":");
+      return await nodeRespondedOnPort(node, port);
+    });
     // NOTE: ?authenticationDatabase=admin is equivalent to authSource when using driver :shrug:
     const uri = `mongodb://${
       buildAuthURI(MONGO_USER, MONGO_PASSWORD)
@@ -182,25 +183,25 @@ const mainPrompted = async (envName: string) => {
     try {
       const client = new MongoClient(uri);
       logger.debug("mainPrompt client instantiated", { uri });
-      const db = client.db("admin")
+      const db = client.db("admin");
       logger.debug("mainPrompt db instance");
-      return await db.command({ replSetGetStatus: 1 })
+      return await db.command({ replSetGetStatus: 1 });
     } catch (error) {
-      logger.error(error)
+      logger.error(error);
     }
-  }
+  };
   const allNodes: Node[] = [];
   for await (const n of shardURIs) {
-    const result = await replSetGetStatus(n).catch(e =>
+    const result = await replSetGetStatus(n).catch((e) =>
       logger.error("Error getting connection", e)
-      ) as Document
+    ) as Document;
     // Try to guard against a single node going down and breaking connectivity
-    if(result === undefined) {
-      continue
+    if (result === undefined) {
+      continue;
     }
     // deno-lint-ignore no-explicit-any
     const all = result.members.map((e: any) => {
-      return {rs: n.rs, name: e.name as string, state: e.stateStr };
+      return { rs: n.rs, name: e.name as string, state: e.stateStr };
     });
     allNodes.push(all);
   }
