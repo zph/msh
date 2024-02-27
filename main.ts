@@ -47,7 +47,7 @@ await log.setup({
 });
 const logger = log.getLogger();
 
-import { MongoClient } from "npm:mongodb@5.6";
+import { Document, MongoClient } from "npm:mongodb@5.6";
 
 if (Deno.env.has("MSH_ENV_VAR_OVERRIDE")) {
   const overrides = JSON.parse(Deno.env.get("MSH_ENV_VAR_OVERRIDE") || "{}");
@@ -158,7 +158,7 @@ const mainPrompted = async (envName: string) => {
     state: string;
   };
 
-  const nodeRespondedOnPort = async (node, port) => {
+  const nodeRespondedOnPort = async (node: string, port: string) => {
     const result = await $`nc -z ${node} ${port}`.stdout("piped").noThrow().quiet()
     if(result.code === 0) {
       return true
@@ -193,7 +193,7 @@ const mainPrompted = async (envName: string) => {
   for await (const n of shardURIs) {
     const result = await replSetGetStatus(n).catch(e =>
       logger.error("Error getting connection", e)
-      )
+      ) as Document
     // Try to guard against a single node going down and breaking connectivity
     if(result === undefined) {
       continue
