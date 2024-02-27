@@ -124,8 +124,7 @@ const mongosh = async (args: string[]) => {
 const mainPrompted = async (envName: string) => {
   const shardMap: Record<string, string> = await getShardMap(envName);
 
-  // Refactor this to be by shard value
-  let nodes = Object.entries(shardMap).filter(([k, v]) => {
+  const nodes = Object.entries(shardMap).filter(([k, v]) => {
     return k !== v;
   }).filter(([k, v]) => {
     // Nodes lack a /
@@ -145,7 +144,7 @@ const mainPrompted = async (envName: string) => {
     connection: string;
   };
 
-  const allShards = nodes.map(([k, v]) => {
+  const allShards = nodes.map(([_k, v]) => {
     // "rs-N/rs1-0:27017,rs1-1:27017,rs1-2:27017"
     const [rs, connection] = v.split("/")
     return {rs, connection} as Shard
