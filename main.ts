@@ -301,7 +301,12 @@ const runFailover = async (server: string, nodes: Node[]) => {
   const client = new MongoClient(uri);
   const _result = await client.db("admin").command({ replSetStepDown: 60 }).catch(e => logger.info(`Failed over: `, e));
   logger.info(`Failed over: `, primary)
-  // TODO: sleep for 10s and fetch the replicaset's state
+  logger.info(`Fetching cluster state in 5s `)
+  await new Promise((resolve) => setTimeout(resolve, 5 * 1000))
+
+  const clientv2 = new MongoClient(uri);
+  const result = await clientv2.db("admin").command({ replSetGetStatus: 1 });
+  logger.info(`Result after failover `, result.members.map(({name, stateStr}) => ({name, stateStr})))
 }
 
 const runMongoShell = async (server: string) => {
