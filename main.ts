@@ -223,7 +223,8 @@ const mainPrompted = async (envName: string) => {
     }
   };
 
-  const allNodesDeduplicated = _.chain(allNodes).flatten().uniqBy("name").value()
+  const allNodesDeduplicated = _.chain(allNodes).flatten().uniqBy("name")
+    .value();
   const uniqNodes = _.chain(allNodes).flatten().uniqBy("name").map(
     (e: Node) => {
       return {
@@ -242,7 +243,7 @@ const mainPrompted = async (envName: string) => {
     search: true,
   });
 
-  return {server: server, nodes: allNodesDeduplicated} ;
+  return { server: server, nodes: allNodesDeduplicated };
 };
 
 const connect = async () => {
@@ -250,14 +251,14 @@ const connect = async () => {
   const choice: string = await Select.prompt({
     message: "Operation to execute?",
     info: true,
-    options: [ "failover" , "mongoshell" ],
+    options: ["failover", "mongoshell"],
     search: true,
   });
 
   let server = PARSED_ARGS._[0] as string;
-  let nodes: Node[] = []
+  let nodes: Node[] = [];
   if (PARSED_ARGS["env"]) {
-    ({ server, nodes } = await mainPrompted(PARSED_ARGS.env))
+    ({ server, nodes } = await mainPrompted(PARSED_ARGS.env));
   }
 
   switch (choice) {
@@ -271,18 +272,18 @@ const connect = async () => {
       await runMongoShell(server);
       break;
   }
-  Deno.exit(0)
+  Deno.exit(0);
 };
 
 const runFailover = async (server: string, nodes: Node[]) => {
-  const match = nodes.find(n => n.name === server)
-  if(match === undefined) {
-    throw Error('Unable to find matching server in our node set')
+  const match = nodes.find((n) => n.name === server);
+  if (match === undefined) {
+    throw Error("Unable to find matching server in our node set");
   }
 
-  const primary = nodes.find(n => n.rs === match.rs && n.state === "PRIMARY")
-  if(primary === undefined) {
-    throw Error('Unable to find matching server primary in our node set')
+  const primary = nodes.find((n) => n.rs === match.rs && n.state === "PRIMARY");
+  if (primary === undefined) {
+    throw Error("Unable to find matching server primary in our node set");
   }
   // TODO: add in failover mechanism
   // https://www.mongodb.com/docs/manual/reference/command/replSetStepDown/
@@ -291,23 +292,27 @@ const runFailover = async (server: string, nodes: Node[]) => {
     message: `Failover: ${primary.name} ${primary.state} in ${primary.rs}?`,
   });
 
-  if(!confirmed) {
-    throw Error('Denied confirmation exiting')
+  if (!confirmed) {
+    throw Error("Denied confirmation exiting");
   }
 
-  const uri = `mongodb://${buildAuthURI(MONGO_USER, MONGO_PASSWORD)}${
-    primary.name
-  }?authSource=${MONGO_AUTH_DB}`;
+  const uri = `mongodb://${
+    buildAuthURI(MONGO_USER, MONGO_PASSWORD)
+  }${primary.name}?authSource=${MONGO_AUTH_DB}`;
   const client = new MongoClient(uri);
-  const _result = await client.db("admin").command({ replSetStepDown: 60 }).catch(e => logger.info(`Failed over: `, e));
-  logger.info(`Failed over: `, primary)
-  logger.info(`Fetching replicaset state in 5s `)
-  await new Promise((resolve) => setTimeout(resolve, 5 * 1000))
+  const _result = await client.db("admin").command({ replSetStepDown: 60 })
+    .catch((e) => logger.info(`Failed over: `, e));
+  logger.info(`Failed over: `, primary);
+  logger.info(`Fetching replicaset state in 5s `);
+  await new Promise((resolve) => setTimeout(resolve, 5 * 1000));
 
   const clientv2 = new MongoClient(uri);
   const result = await clientv2.db("admin").command({ replSetGetStatus: 1 });
-  logger.info(`Result after failover `, result.members.map((n: any) => ({name: n.name, state: n.stateStr})))
-}
+  logger.info(
+    `Result after failover `,
+    result.members.map((n: Document[string]) => ({ name: n.name, state: n.stateStr })),
+  );
+};
 
 const runMongoShell = async (server: string) => {
   Deno.addSignalListener("SIGINT", () => {
@@ -330,7 +335,7 @@ const runMongoShell = async (server: string) => {
       `mongodb://${server}`,
     ]);
   }
-}
+};
 
 const version = () => {
   console.info(`msh version ${config.version}`);
