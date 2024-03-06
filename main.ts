@@ -310,7 +310,10 @@ const runFailover = async (server: string, nodes: Node[]) => {
   const result = await clientv2.db("admin").command({ replSetGetStatus: 1 });
   logger.info(
     `Result after failover `,
-    result.members.map((n: Document[string]) => ({ name: n.name, state: n.stateStr })),
+    result.members.map((n: Document[string]) => ({
+      name: n.name,
+      state: n.stateStr,
+    })),
   );
 };
 
