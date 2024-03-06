@@ -2,6 +2,7 @@
 
 import "https://deno.land/std/log/mod.ts";
 import { Select } from "https://deno.land/x/cliffy@v0.25.7/prompt/select.ts";
+import { Confirm } from "https://deno.land/x/cliffy@v0.25.7/prompt/confirm.ts";
 import "https://deno.land/x/lodash@4.17.19/dist/lodash.js";
 import * as log from "https://deno.land/std@0.217.0/log/mod.ts";
 import config from "./config.json" with { type: "json" };
@@ -64,6 +65,12 @@ if (Deno.env.has("MSH_ENV_VAR_OVERRIDE")) {
 const MONGO_USER = Deno.env.get("MONGO_USER") || "";
 const MONGO_PASSWORD = Deno.env.get("MONGO_PASSWORD") || "";
 const MONGO_AUTH_DB = Deno.env.get("MONGO_AUTH_DB") || "admin";
+
+type Node = {
+  rs: string;
+  name: string;
+  state: string;
+};
 
 const buildAuthURI = (user: string, password: string) => {
   if (user === "") return "";
@@ -152,12 +159,6 @@ const mainPrompted = async (envName: string) => {
 
   const shardURIs = _.uniqBy(allShards, (s: Shard) => (s.rs));
 
-  type Node = {
-    rs: string;
-    name: string;
-    state: string;
-  };
-
   const nodeRespondedOnPort = async (node: string, port: string) => {
     const result = await $`nc -z ${node} ${port}`.stdout("piped").noThrow()
       .quiet();
@@ -222,6 +223,7 @@ const mainPrompted = async (envName: string) => {
     }
   };
 
+  const allNodesDeduplicated = _.chain(allNodes).flatten().uniqBy("name").value()
   const uniqNodes = _.chain(allNodes).flatten().uniqBy("name").map(
     (e: Node) => {
       return {
@@ -234,28 +236,81 @@ const mainPrompted = async (envName: string) => {
   ).value();
 
   const server: string = await Select.prompt({
-    message: "Pick server to connect to",
+    message: "Pick a server",
     info: true,
     options: uniqNodes,
     search: true,
   });
 
-  return server;
+  return {server: server, nodes: allNodesDeduplicated} ;
 };
 
 const connect = async () => {
-  let server = PARSED_ARGS._[0];
+  // Prompt for either failover against a shard OR connect a shell
+  const choice: string = await Select.prompt({
+    message: "Operation to execute?",
+    info: true,
+    options: [ "failover" , "mongoshell" ],
+    search: true,
+  });
+
+  let server = PARSED_ARGS._[0] as string;
+  let nodes: Node[] = []
   if (PARSED_ARGS["env"]) {
-    server = await mainPrompted(PARSED_ARGS.env);
+    ({ server, nodes } = await mainPrompted(PARSED_ARGS.env))
   }
 
+  switch (choice) {
+    case "failover":
+      await runFailover(server, nodes);
+      break;
+    case "mongoshell":
+      await runMongoShell(server);
+      break;
+    default:
+      await runMongoShell(server);
+      break;
+  }
+  Deno.exit(0)
+};
+
+const runFailover = async (server: string, nodes: Node[]) => {
+  const match = nodes.find(n => n.name === server)
+  if(match === undefined) {
+    throw Error('Unable to find matching server in our node set')
+  }
+
+  const primary = nodes.find(n => n.rs === match.rs && n.state === "PRIMARY")
+  if(primary === undefined) {
+    throw Error('Unable to find matching server primary in our node set')
+  }
+  // TODO: add in failover mechanism
+  // https://www.mongodb.com/docs/manual/reference/command/replSetStepDown/
+
+  const confirmed: string = await Confirm.prompt({
+    message: `Failover: ${primary.name} ${primary.state} in ${primary.rs}?`,
+  });
+
+  if(!confirmed) {
+    throw Error('Denied confirmation exiting')
+  }
+
+  const uri = `mongodb://${buildAuthURI(MONGO_USER, MONGO_PASSWORD)}${
+    primary.name
+  }?authSource=${MONGO_AUTH_DB}`;
+  const client = new MongoClient(uri);
+  const _result = await client.db("admin").command({ replSetStepDown: 60 }).catch(e => logger.info(`Failed over: `, e));
+  logger.info(`Failed over: `, primary)
+  // TODO: sleep for 10s and fetch the replicaset's state
+}
+
+const runMongoShell = async (server: string) => {
   Deno.addSignalListener("SIGINT", () => {
     console.log("interrupted!");
     Deno.exit();
   });
 
   if (MONGO_USER !== "") {
-    // TODO: unhardcode this best practice for auth database :shrug: but it breaks the unescaping
     await mongosh([
       `mongodb://${server}`,
       `--username`,
@@ -270,7 +325,7 @@ const connect = async () => {
       `mongodb://${server}`,
     ]);
   }
-};
+}
 
 const version = () => {
   console.info(`msh version ${config.version}`);
